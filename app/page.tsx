@@ -1,101 +1,144 @@
-import Image from "next/image";
+"use client";
+import MarkdownPreview from "@uiw/react-markdown-preview";
+import { Textarea } from "@/components/ui/textarea";
+import { ChangeEvent, FormEvent, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Copy, Download, Upload } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [mdCode, setMDCode] = useState<string>(
+    "# Hello, 👋 \n Start editing the markdown with **live preview**!",
+  );
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  async function copyToClipboard(): Promise<void> {
+    await navigator.clipboard.writeText(mdCode);
+  }
+
+  const handleUpload = (event: React.FormEvent<HTMLFormElement>): void => {
+    event.preventDefault();
+    const inputElement = event.currentTarget.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
+    const file = inputElement?.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e: ProgressEvent<FileReader>): void => {
+        const text = e.target?.result;
+        console.log(text);
+        if (typeof text === "string") {
+          setMDCode(text);
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
+  function handleFileDownload(): void {
+    const blob = new Blob([mdCode], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "markdown.md";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <main className="font-sans h-screen">
+      <section className="my-5">
+        <h1 className="text-5xl font-bold flex justify-center items-center">
+          Live Markdown Editor
+        </h1>
+        <div className="flex gap-2 px-3 flex-wrap">
+          <Button onClick={copyToClipboard}>
+            <Copy />
+            Copy
+          </Button>
+          <Button onClick={handleFileDownload}>
+            <Download />
+            Download
+          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload />
+                Upload
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Upload file</DialogTitle>
+                <DialogDescription className="hidden"></DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(e: FormEvent<HTMLFormElement>): void =>
+                  handleUpload(e)
+                }
+              >
+                <Input type="file" accept=".md" required />
+                <Button type="submit">Upload</Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      </section>
+      <section className="lg:hidden">
+        <Tabs defaultValue="Code">
+          <TabsList className="grid grid-cols-2 mx-1">
+            <TabsTrigger value="Code">Markdown</TabsTrigger>
+            <TabsTrigger value="Preview">Preview</TabsTrigger>
+          </TabsList>
+          <TabsContent value="Code">
+            <div className="h-[40rem]">
+              <Textarea
+                autoFocus
+                className="h-full border border-black"
+                style={{ fontSize: 20 }}
+                value={mdCode}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>): void =>
+                  setMDCode(e.target.value)
+                }
+              />
+            </div>
+          </TabsContent>
+          <TabsContent value="Preview">
+            <div className="h-[40rem]">
+              <MarkdownPreview
+                className="h-full p-2 rounded-md"
+                source={mdCode}
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+      </section>
+      <section className="hidden lg:grid lg:grid-cols-2 gap-4 mb-5 p-4 h-[40rem]">
+        <div>
+          <Textarea
+            autoFocus
+            className="h-full border border-black"
+            style={{ fontSize: 20 }}
+            value={mdCode}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>): void =>
+              setMDCode(e.target.value)
+            }
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        </div>
+        <div>
+          <MarkdownPreview className="h-full p-2 rounded-md" source={mdCode} />
+        </div>
+      </section>
+    </main>
   );
 }
